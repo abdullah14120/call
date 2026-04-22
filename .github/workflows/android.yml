@@ -1,39 +1,30 @@
-name: Android CI Build
-
-on:
-  push:
-    branches: [ "main", "master" ]
-  pull_request:
-    branches: [ "main", "master" ]
-
+name: Build APK
+on: [push]
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
-    - name: Checkout the code
-      uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Set up JDK 17
-      uses: actions/setup-java@v4
-      with:
-        java-version: '17'
-        distribution: 'temurin'
-        cache: gradle
+      - name: set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
 
-    # حل مشكلة Jarfile المفقود عبر توليد Wrapper جديد كلياً
-    - name: Force Generate Gradle Wrapper
-      run: |
-        gradle wrapper --gradle-version 8.2.2
-        chmod +x gradlew
+      # هذه هي الخطوة التي كانت تنقصنا، فهي تجهز البيئة بشكل احترافي
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
 
-    # بناء نسخة الـ APK مع إظهار تفاصيل الخطأ إن وجد
-    - name: Build with Gradle
-      run: ./gradlew assembleDebug --stacktrace
+      - name: Generate Wrapper and Build
+        run: |
+          # سنستخدم إصدار 8.2 ليتوافق مع ملفات الـ build.gradle التي أنشأناها
+          gradle wrapper --gradle-version 8.2
+          chmod +x gradlew
+          ./gradlew assembleDebug
 
-    # رفع الـ APK الناتج
-    - name: Upload APK
-      uses: actions/upload-artifact@v4
-      with:
-        name: CDMA-GSM-Bridge-App
-        path: app/build/outputs/apk/debug/app-debug.apk
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug
+          path: app/build/outputs/apk/debug/*.apk
