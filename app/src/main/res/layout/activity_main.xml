@@ -1,38 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:gravity="center"
-    android:padding="20dp">
+    android:padding="20dp"
+    android:gravity="center">
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="جسر المكالمات CDMA"
-        android:textSize="24sp"
+        android:text="إعدادات جسر الاتصال"
+        android:textSize="20sp"
+        android:textStyle="bold"
         android:layout_marginBottom="30dp"/>
 
     <EditText
-        android:id="@+id/etTargetIp"
+        android:id="@+id/editIp"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="أدخل IP جهاز المستقبل (للمرسل فقط)"
+        android:hint="أدخل IP جهاز المستقبل (GSM)"
         android:inputType="phone"
         android:layout_marginBottom="20dp"/>
 
     <Button
-        android:id="@+id/btnSender"
+        android:id="@+id/btnCdma"
         android:layout_width="match_parent"
-        android:layout_height="60dp"
-        android:text="تفعيل كـ مرسل (CDMA)"
-        android:backgroundTint="#FF5722"/>
+        android:layout_height="wrap_content"
+        android:text="تفعيل كـ مرسل (جهاز CDMA)"
+        android:layout_marginBottom="10dp"/>
 
     <Button
-        android:id="@+id/btnReceiver"
+        android:id="@+id/btnGsm"
         android:layout_width="match_parent"
-        android:layout_height="60dp"
-        android:layout_marginTop="10dp"
-        android:text="تفعيل كـ مستقبل (GSM)"
-        android:backgroundTint="#4CAF50"/>
+        android:layout_height="wrap_content"
+        android:text="تفعيل كـ مستقبل (جهاز GSM)"/>
 
 </LinearLayout>
