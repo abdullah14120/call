@@ -1,13 +1,23 @@
 package com.cdma.gsm.call;
 
+import android.app.Service;
+import android.content.Intent;
+import android.os.IBinder;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.ServerSocket;
+import java.net.Socket;
+
 public class BridgeService extends Service {
+    
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        new Thread(this::startServer).start();
+        new Thread(this::startSocketServer).start();
         return START_STICKY;
     }
 
-    private void startServer() {
+    private void startSocketServer() {
         try (ServerSocket serverSocket = new ServerSocket(8888)) {
             while (true) {
                 Socket client = serverSocket.accept();
