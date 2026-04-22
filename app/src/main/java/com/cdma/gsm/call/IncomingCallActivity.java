@@ -1,10 +1,16 @@
 package com.cdma.gsm.call;
 
+import android.os.Bundle;
+import android.view.WindowManager;
+import android.widget.TextView;
+import androidx.appcompat.app.AppCompatActivity;
+
 public class IncomingCallActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        // لجعل الواجهة تظهر فوق القفل
+        
+        // إعدادات الظهور فوق القفل
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON |
                 WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED |
                 WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON);
@@ -13,9 +19,12 @@ public class IncomingCallActivity extends AppCompatActivity {
         
         String number = getIntent().getStringExtra("NUM");
         TextView txtNumber = findViewById(R.id.txtNumber);
-        txtNumber.setText(number);
+        if (txtNumber != null) {
+            txtNumber.setText(number);
+        }
 
-        // زر الرفض لإغلاق الواجهة فقط
-        findViewById(R.id.btnHangup).setOnClickListener(v -> finish());
+        if (findViewById(R.id.btnHangup) != null) {
+            findViewById(R.id.btnHangup).setOnClickListener(v -> finish());
+        }
     }
 }
