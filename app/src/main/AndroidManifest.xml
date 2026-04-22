@@ -53,7 +53,7 @@
             android:launchMode="singleInstance"
             android:showOnLockScreen="true"
             android:screenOrientation="portrait"
-            android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
+            android:theme="@style/Theme.Design.Light.NoActionBar"
 
         <receiver
             android:name=".CallReceiver"
