@@ -1,0 +1,38 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:padding="20dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="جسر المكالمات CDMA"
+        android:textSize="24sp"
+        android:layout_marginBottom="30dp"/>
+
+    <EditText
+        android:id="@+id/etTargetIp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="أدخل IP جهاز المستقبل (للمرسل فقط)"
+        android:inputType="Phone"
+        android:layout_marginBottom="20dp"/>
+
+    <Button
+        android:id="@+id/btnSender"
+        android:layout_width="match_parent"
+        android:layout_height="60dp"
+        android:text="تفعيل كـ مرسل (CDMA)"
+        android:backgroundTint="#FF5722"/>
+
+    <Button
+        android:id="@+id/btnReceiver"
+        android:layout_width="match_parent"
+        android:layout_height="60dp"
+        android:layout_marginTop="10dp"
+        android:text="تفعيل كـ مستقبل (GSM)"
+        android:backgroundTint="#4CAF50"/>
+
+</LinearLayout>
