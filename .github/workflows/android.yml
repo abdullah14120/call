@@ -21,20 +21,17 @@ jobs:
         distribution: 'temurin'
         cache: gradle
 
-    # الخطوة السحرية: توليد ملفات الجرادل الناقصة تلقائياً
-    - name: Setup Gradle Wrapper
+    # حل مشكلة Jarfile المفقود عبر توليد Wrapper جديد كلياً
+    - name: Force Generate Gradle Wrapper
       run: |
-        if [ ! -f "gradlew" ]; then
-          gradle wrapper
-        fi
+        gradle wrapper --gradle-version 8.2.2
+        chmod +x gradlew
 
-    - name: Grant execute permission for gradlew
-      run: chmod +x gradlew
-
-    # بناء نسخة الـ APK
+    # بناء نسخة الـ APK مع إظهار تفاصيل الخطأ إن وجد
     - name: Build with Gradle
       run: ./gradlew assembleDebug --stacktrace
 
+    # رفع الـ APK الناتج
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
