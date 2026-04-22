@@ -1,6 +1,7 @@
 package com.cdma.gsm.call;
 
 import android.Manifest;
+import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -13,11 +14,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
-
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends Activity {
 
     private EditText etTargetIp;
     private SharedPreferences prefs;
@@ -29,16 +26,16 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        etTargetIp = findViewById(R.id.etTargetIp);
-        Button btnSender = findViewById(R.id.btnSender);
-        Button btnReceiver = findViewById(R.id.btnReceiver);
+        etTargetIp = findViewById(R.id.editIp); // تأكد أن الـ ID مطابق لـ xml
+        Button btnSender = findViewById(R.id.btnCdma);
+        Button btnReceiver = findViewById(R.id.btnGsm);
 
         prefs = getSharedPreferences("BridgePrefs", MODE_PRIVATE);
         
-        // استرجاع آخر IP تم استخدامه لتسهيل العمل
+        // استرجاع آخر IP تم استخدامه
         etTargetIp.setText(prefs.getString("ip", ""));
 
-        // 1. طلب أذونات الهاتف الأساسية
+        // 1. طلب أذونات الهاتف الأساسية عند التشغيل
         checkAndRequestPermissions();
 
         // 2. تفعيل وضع المرسل (جهاز CDMA)
@@ -49,12 +46,11 @@ public class MainActivity extends AppCompatActivity {
                 return;
             }
             prefs.edit().putString("ip", ip).apply();
-            Toast.makeText(this, "تم حفظ الإعدادات. سيقوم الجهاز الآن بإرسال المكالمات إلى: " + ip, Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "تم الحفظ. سيعمل كمرسل إلى: " + ip, Toast.LENGTH_LONG).show();
         });
 
         // 3. تفعيل وضع المستقبل (جهاز GSM)
         btnReceiver.setOnClickListener(v -> {
-            // طلب إذن الظهور فوق التطبيقات (ضروري لفتح واجهة الاتصال تلقائياً)
             if (checkOverlayPermission()) {
                 startBridgeService();
             }
@@ -62,12 +58,15 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void checkAndRequestPermissions() {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED ||
-            ContextCompat.checkSelfPermission(this, Manifest.permission.READ_CALL_LOG) != PackageManager.PERMISSION_GRANTED) {
-            
-            ActivityCompat.requestPermissions(this, 
-                new String[]{Manifest.permission.READ_PHONE_STATE, Manifest.permission.READ_CALL_LOG}, 
-                PERMISSION_REQUEST_CODE);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (checkSelfPermission(Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED ||
+                checkSelfPermission(Manifest.permission.READ_CALL_LOG) != PackageManager.PERMISSION_GRANTED) {
+                
+                requestPermissions(new String[]{
+                        Manifest.permission.READ_PHONE_STATE, 
+                        Manifest.permission.READ_CALL_LOG
+                }, PERMISSION_REQUEST_CODE);
+            }
         }
     }
 
@@ -77,7 +76,7 @@ public class MainActivity extends AppCompatActivity {
                 Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
                         Uri.parse("package:" + getPackageName()));
                 startActivityForResult(intent, OVERLAY_REQUEST_CODE);
-                Toast.makeText(this, "يرجى تفعيل إذن الظهور فوق التطبيقات للمستقبل", Toast.LENGTH_LONG).show();
+                Toast.makeText(this, "يرجى تفعيل إذن الظهور فوق التطبيقات", Toast.LENGTH_LONG).show();
                 return false;
             }
         }
@@ -91,7 +90,7 @@ public class MainActivity extends AppCompatActivity {
         } else {
             startService(serviceIntent);
         }
-        Toast.makeText(this, "تم تشغيل خدمة الاستقبال في الخلفية", Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, "بدء خدمة الاستقبال...", Toast.LENGTH_SHORT).show();
     }
 
     @Override
