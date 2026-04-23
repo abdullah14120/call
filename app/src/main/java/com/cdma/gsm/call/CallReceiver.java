@@ -10,31 +10,36 @@ import java.net.Socket;
 
 public class CallReceiver extends BroadcastReceiver {
     
+    private static final String TAG = "CallBridge_Sender";
+
     @Override
     public void onReceive(Context context, Intent intent) {
         String action = intent.getAction();
         
-        // التحقق من أن الحدث هو تغير حالة الهاتف
         if (TelephonyManager.ACTION_PHONE_STATE_CHANGED.equals(action)) {
             String state = intent.getStringExtra(TelephonyManager.EXTRA_STATE);
             
             if (TelephonyManager.EXTRA_STATE_RINGING.equals(state)) {
-                // بما أننا "المتصل الافتراضي"، سنحصل على الرقم هنا مباشرة
+                // جلب الرقم الوارد
                 String incomingNumber = intent.getStringExtra(TelephonyManager.EXTRA_INCOMING_NUMBER);
                 
-                // في بعض الأجهزة، قد نحتاج لجلب الرقم بطريقة احتياطية
+                /* تعديل هام: إذا كان الرقم null، نرسل نص "Unknown" 
+                   ليتم التعرف عليه وفلترته في جهاز المستقبل ومنع السجل المكرر.
+                */
                 if (incomingNumber == null || incomingNumber.isEmpty()) {
-                    incomingNumber = "رقم خاص/مخفي";
+                    incomingNumber = "Unknown";
                 }
 
-                Log.d("CallBridge", "مكالمة واردة من: " + incomingNumber);
+                Log.d(TAG, "اكتشاف رنين من رقم: " + incomingNumber);
                 
-                // جلب IP جهاز المستقبل المحفوظ
+                // جلب عنوان IP الهدف من الإعدادات المحفوظة
                 String targetIp = context.getSharedPreferences("BridgePrefs", Context.MODE_PRIVATE)
                                          .getString("ip", "");
 
-                if (!targetIp.isEmpty()) {
+                if (!targetIp.isEmpty() && !targetIp.equals("")) {
                     sendSignalToReceiver(targetIp, incomingNumber);
+                } else {
+                    Log.w(TAG, "لم يتم إرسال الإشارة: عنوان IP غير مضبوط في الإعدادات.");
                 }
             }
         }
@@ -43,13 +48,16 @@ public class CallReceiver extends BroadcastReceiver {
     private void sendSignalToReceiver(String ip, String number) {
         new Thread(() -> {
             try (Socket socket = new Socket(ip, 8888)) {
-                // ضبط مهلة الاتصال لضمان عدم تعليق التطبيق
-                socket.setSoTimeout(5000); 
+                // مهلة زمنية قصيرة للاتصال لضمان السرعة
+                socket.setSoTimeout(3000); 
+                
                 PrintWriter writer = new PrintWriter(socket.getOutputStream(), true);
+                // إرسال الإشارة بالصيغة المتفق عليها مع السيرفر
                 writer.println("RING:" + number);
-                Log.d("CallBridge", "تم إرسال الإشارة بنجاح");
+                
+                Log.i(TAG, "تم بث الإشارة بنجاح إلى: " + ip);
             } catch (Exception e) {
-                Log.e("CallBridge", "فشل الإرسال: " + e.getMessage());
+                Log.e(TAG, "خطأ في بث الإشارة عبر الشبكة: " + e.getMessage());
             }
         }).start();
     }
