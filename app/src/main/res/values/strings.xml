@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">جسر CDMA-GSM السحابي</string>
+
+    <string name="target_ip_hint">رابط Firebase (تلقائي)</string>
+    <string name="btn_sender_text">تفعيل وضع المرسل (CDMA)</string>
+    <string name="btn_receiver_text">تفعيل وضع المستقبل (GSM)</string>
+    <string name="status_idle">الحالة: خامل</string>
+    <string name="status_sender">الحالة: مرسل سحابي نشط (نظام خماسي)</string>
+    <string name="status_receiver">الحالة: مستقبل سحابي متصل</string>
+
+    <string name="receive_settings_title">إعدادات استقبال البيانات:</string>
+    <string name="switch_calls_label">استقبال المكالمات الفائتة</string>
+    <string name="switch_sms_label">استقبال أرقام الرسائل النصية</string>
+
+    <string name="accessibility_description">هذه الخدمة هي جزء من نظام جسر CDMA، وظيفتها التقاط رقم المتصل من الشاشة فور وروده وإرساله إلى جهازك الآخر عبر الإنترنت لضمان السرعة القصوى.</string>
+    <string name="notification_channel_name">خدمة الجسر السحابي</string>
+    <string name="notification_description">تعمل هذه الخدمة في الخلفية لضمان استمرار الاتصال بين الجهازين واستقبال الإشارات اللحظية.</string>
+
+    <string name="perm_denied">يرجى منح كافة الأذونات لضمان عمل النظام الخماسي.</string>
+    <string name="overlay_needed">إذن الظهور فوق التطبيقات مطلوب لعرض واجهة الرنين.</string>
+    <string name="accessibility_needed">يرجى تفعيل خدمة الوصول من الإعدادات لرفع سرعة التقاط الأرقام.</string>
+</resources>
