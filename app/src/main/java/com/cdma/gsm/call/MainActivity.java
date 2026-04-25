@@ -33,7 +33,7 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // ربط عناصر الواجهة الجديدة
+        // 1. ربط عناصر الواجهة (تأكد من مطابقة الـ IDs في ملف XML)
         txtStatus = findViewById(R.id.txtStatus);
         Button btnSender = findViewById(R.id.btnCdma);
         Button btnReceiver = findViewById(R.id.btnGsm);
@@ -42,26 +42,26 @@ public class MainActivity extends Activity {
 
         prefs = getSharedPreferences("ReceiverPrefs", MODE_PRIVATE);
         
-        // تحميل إعدادات الاستقبال السحابي
+        // تحميل إعدادات الاستقبال المحفوظة
         swCalls.setChecked(prefs.getBoolean("allow_calls", true));
         swSms.setChecked(prefs.getBoolean("allow_sms", true));
 
-        // 1. طلب المصفوفة الشاملة للأذونات (الهاتف، السجل، الرسائل، الإشعارات)
+        // 2. طلب المصفوفة الشاملة للأذونات عند فتح التطبيق
         checkAndRequestAllPermissions();
 
-        // 2. تفعيل وضع المرسل (جهاز CDMA) - النظام الخماسي
+        // 3. تفعيل وضع المرسل (جهاز CDMA) - تشغيل محركات النظام الخماسي
         btnSender.setOnClickListener(v -> {
             activateSenderMode();
         });
 
-        // 3. تفعيل وضع المستقبل (جهاز GSM) - الاستقبال السحابي
+        // 4. تفعيل وضع المستقبل (جهاز GSM) - بدء الاستقبال السحابي
         btnReceiver.setOnClickListener(v -> {
             if (checkOverlayPermission()) {
                 startBridgeService();
             }
         });
 
-        // حفظ تفضيلات المستخدم للاستقبال
+        // حفظ تفضيلات المستخدم فور تغيير الـ Switches
         swCalls.setOnCheckedChangeListener((b, isChecked) -> prefs.edit().putBoolean("allow_calls", isChecked).apply());
         swSms.setOnCheckedChangeListener((b, isChecked) -> prefs.edit().putBoolean("allow_sms", isChecked).apply());
     }
@@ -69,16 +69,16 @@ public class MainActivity extends Activity {
     private void checkAndRequestAllPermissions() {
         List<String> permissionsNeeded = new ArrayList<>();
         
-        // أذونات المكالمات والسجل (الطريقة 1 و 2)
+        // أذونات المكالمات والسجل (للمراقبين 1 و 2 و 5)
         permissionsNeeded.add(Manifest.permission.READ_PHONE_STATE);
         permissionsNeeded.add(Manifest.permission.READ_CALL_LOG);
         permissionsNeeded.add(Manifest.permission.WRITE_CALL_LOG);
         
-        // أذونات الرسائل النصية (الطريقة 3)
+        // أذونات الرسائل (للمراقب 3)
         permissionsNeeded.add(Manifest.permission.RECEIVE_SMS);
         permissionsNeeded.add(Manifest.permission.READ_SMS);
 
-        // أذونات الإشعارات لأندرويد 13 فما فوق
+        // إذن الإشعارات لأجهزة أندرويد 13+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             permissionsNeeded.add(Manifest.permission.POST_NOTIFICATIONS);
         }
@@ -98,27 +98,27 @@ public class MainActivity extends Activity {
             }
         }
 
-        // فحص وتفعيل ميزة Notification Listener (الطريقة 4)
+        // فحص "مراقب الإشعارات" (المراقب 4) وتوجيه المستخدم لتفعيله
         if (!isNotificationServiceEnabled()) {
             startActivity(new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS));
-            Toast.makeText(this, "يرجى تفعيل 'جسر CDMA' في قائمة الإشعارات", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "يرجى تفعيل 'جسر CDMA' في قائمة الوصول للإشعارات", Toast.LENGTH_LONG).show();
         }
 
-        // فحص وتفعيل ميزة Accessibility Service (الطريقة 5)
+        // فحص "خدمة الوصول" (المراقب 5) وتوجيه المستخدم لتفعيلها
         if (!isAccessibilityServiceEnabled(this, MyAccessibilityService.class)) {
             startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS));
-            Toast.makeText(this, "يرجى تفعيل 'جسر CDMA' في خدمات الوصول", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "يرجى تفعيل 'جسر CDMA' في خدمات إمكانية الوصول", Toast.LENGTH_LONG).show();
         }
     }
 
     private void activateSenderMode() {
-        // تفعيل CallLog Observer لمراقبة قاعدة بيانات النظام مباشرة
+        // تفعيل CallLog Observer لمراقبة سجل النظام فوراً
         CallLogObserver observer = new CallLogObserver(new Handler(), this);
         getContentResolver().registerContentObserver(CallLog.Calls.CONTENT_URI, true, observer);
 
-        txtStatus.setText("الحالة: مرسل سحابي (نظام خماسي)");
-        txtStatus.setTextColor(0xFF4CAF50); // لون أخضر
-        Toast.makeText(this, "تم تفعيل كافة طرق التتبع السحابي بنجاح", Toast.LENGTH_LONG).show();
+        txtStatus.setText("الحالة: مرسل سحابي نشط (النظام الخماسي)");
+        txtStatus.setTextColor(0xFF4CAF50); // لون أخضر للنجاح
+        Toast.makeText(this, "النظام الخماسي جاهز لاقتناص المكالمات وإرسالها", Toast.LENGTH_LONG).show();
     }
 
     private boolean isNotificationServiceEnabled() {
@@ -166,8 +166,8 @@ public class MainActivity extends Activity {
         } else {
             startService(serviceIntent);
         }
-        txtStatus.setText("الحالة: مستقبل سحابي نشط");
-        txtStatus.setTextColor(0xFF2196F3); // لون أزرق
+        txtStatus.setText("الحالة: مستقبل سحابي متصل");
+        txtStatus.setTextColor(0xFF2196F3); // لون أزرق للاستقبال
     }
 
     @Override
