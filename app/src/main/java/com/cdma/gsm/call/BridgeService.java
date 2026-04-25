@@ -8,67 +8,103 @@ import android.app.Service;
 import android.app.Person;
 import android.content.ContentValues;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.IBinder;
 import android.provider.CallLog;
 import android.util.Log;
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.ServerSocket;
-import java.net.Socket;
+
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 
 public class BridgeService extends Service {
     private static final String CHANNEL_ID = "CallBridgeChannel";
-    private static final String TAG = "BridgeService";
+    private static final String TAG = "BridgeServiceCloud";
+    private static final String DB_URL = "https://banproject-2f9c6-default-rtdb.firebaseio.com/";
+    
+    private DatabaseReference bridgeRef;
+    private ValueEventListener cloudListener;
+    private long lastSyncTime = 0;
 
     @Override
     public void onCreate() {
         super.onCreate();
         createNotificationChannel();
-        startForeground(1, getServiceNotification("جسر CDMA يعمل في الخلفية..."));
+        // إشعار الخدمة الدائمة
+        startForeground(1, getServiceNotification("جسر CDMA: بانتظار الإشارة السحابية..."));
+        
+        // ربط السحابة (Firebase)
+        initCloudMonitoring();
     }
 
-    private Notification getServiceNotification(String text) {
-        Notification.Builder builder = (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) ?
-                new Notification.Builder(this, CHANNEL_ID) : new Notification.Builder(this);
-        return builder.setContentTitle("جسر CDMA")
-                .setContentText(text)
-                .setSmallIcon(android.R.drawable.ic_menu_call)
-                .setCategory(Notification.CATEGORY_SERVICE)
-                .setOngoing(true)
-                .build();
+    private void initCloudMonitoring() {
+        FirebaseDatabase database = FirebaseDatabase.getInstance(DB_URL);
+        bridgeRef = database.getReference("bridge_signals");
+        
+        // جعل القناة "ساخنة" لضمان السرعة القصوى حتى لو الشاشة مغلقة
+        bridgeRef.keepSynced(true);
+
+        cloudListener = new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                if (!dataSnapshot.exists()) return;
+
+                String number = dataSnapshot.child("number").getValue(String.class);
+                String type = dataSnapshot.child("type").getValue(String.class);
+                Long timestamp = dataSnapshot.child("timestamp").getValue(Long.class);
+
+                // التأكد من أن الإشارة جديدة (لم تعالج من قبل)
+                if (timestamp != null && timestamp > lastSyncTime) {
+                    lastSyncTime = timestamp;
+                    handleIncomingSignal(number, type);
+                }
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+                Log.e(TAG, "فشل الاتصال بـ Firebase: " + databaseError.getMessage());
+            }
+        };
+
+        bridgeRef.addValueEventListener(cloudListener);
     }
 
-    /**
-     * حفظ الرقم في سجل النظام كـ "مكالمة فائتة" مع فلترة الأرقام الوهمية.
-     */
-    private void addMissedCallToLog(String number) {
-        // --- فلتر منع التكرار والأرقام الوهمية ---
-        if (number == null || number.isEmpty() || number.equalsIgnoreCase("null") || 
-            number.contains("Unknown") || number.contains("مخفي") || number.contains("خاص")) {
-            Log.d(TAG, "تم تجاهل سجل وهمي (رقم خاص/غير معروف) لمنع التكرار.");
-            return; 
+    private void handleIncomingSignal(String number, String type) {
+        SharedPreferences prefs = getSharedPreferences("ReceiverPrefs", MODE_PRIVATE);
+        
+        if ("CALL".equals(type)) {
+            // التحقق من خيار "استقبال المكالمات" في الواجهة
+            if (prefs.getBoolean("allow_calls", true)) {
+                addMissedCallToLog(number);
+                showIncomingCallNotification(number);
+            }
+        } else if ("SMS".equals(type)) {
+            // التحقق من خيار "استقبال أرقام الرسائل" في الواجهة
+            if (prefs.getBoolean("allow_sms", true)) {
+                // نسجلها في السجل مع تمييز أنها رسالة نصية
+                addMissedCallToLog("SMS: " + number);
+            }
         }
+    }
+
+    private void addMissedCallToLog(String number) {
+        if (number == null || number.isEmpty() || number.contains("Unknown")) return;
 
         try {
             ContentValues values = new ContentValues();
             values.put(CallLog.Calls.NUMBER, number);
             values.put(CallLog.Calls.DATE, System.currentTimeMillis());
             values.put(CallLog.Calls.DURATION, 0);
-            
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                values.put(CallLog.Calls.TYPE, CallLog.Calls.MISSED_TYPE);
-            } else {
-                values.put(CallLog.Calls.TYPE, 3); 
-            }
-            
+            values.put(CallLog.Calls.TYPE, CallLog.Calls.MISSED_TYPE);
             values.put(CallLog.Calls.NEW, 1);
 
             getContentResolver().insert(CallLog.Calls.CONTENT_URI, values);
-            Log.d(TAG, "تم تسجيل المكالمة الفائتة للرقم الحقيقي: " + number);
+            Log.d(TAG, "تم تسجيل البيانات بنجاح: " + number);
         } catch (Exception e) {
-            Log.e(TAG, "فشل تسجيل المكالمة: " + e.getMessage());
+            Log.e(TAG, "فشل التسجيل: " + e.getMessage());
         }
     }
 
@@ -84,11 +120,7 @@ public class BridgeService extends Service {
 
         Notification.Builder builder;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            Person incomingCaller = new Person.Builder()
-                    .setName(number)
-                    .setImportant(true)
-                    .build();
-
+            Person incomingCaller = new Person.Builder().setName(number).setImportant(true).build();
             builder = new Notification.Builder(this, CHANNEL_ID)
                     .setSmallIcon(android.R.drawable.ic_menu_call)
                     .setStyle(Notification.CallStyle.forIncomingCall(incomingCaller, fullScreenPendingIntent, fullScreenPendingIntent))
@@ -98,8 +130,8 @@ public class BridgeService extends Service {
         } else {
             builder = new Notification.Builder(this, CHANNEL_ID)
                     .setSmallIcon(android.R.drawable.ic_menu_call)
-                    .setContentTitle("مكالمة واردة عبر الجسر")
-                    .setContentText(number)
+                    .setContentTitle("مكالمة جسر CDMA")
+                    .setContentText("متصل الآن: " + number)
                     .setPriority(Notification.PRIORITY_MAX)
                     .setCategory(Notification.CATEGORY_CALL)
                     .setFullScreenIntent(fullScreenPendingIntent, true);
@@ -108,50 +140,35 @@ public class BridgeService extends Service {
         notificationManager.notify(2, builder.build());
     }
 
-    private void startSocketServer() {
-        try (ServerSocket serverSocket = new ServerSocket(8888)) {
-            Log.d(TAG, "انتظار إشارة الرنين من جهاز CDMA...");
-            while (true) {
-                try {
-                    Socket client = serverSocket.accept();
-                    BufferedReader in = new BufferedReader(new InputStreamReader(client.getInputStream()));
-                    String data = in.readLine();
-                    
-                    if (data != null && data.startsWith("RING:")) {
-                        String incomingNumber = data.split(":")[1];
-                        
-                        // تسجيل المكالمة كفائتة فوراً
-                        addMissedCallToLog(incomingNumber);
-                        // إظهار واجهة الرنين
-                        showIncomingCallNotification(incomingNumber);
-                    }
-                    client.close();
-                } catch (Exception e) {
-                    Log.e(TAG, "خطأ في معالجة البيانات: " + e.getMessage());
-                }
-            }
-        } catch (IOException e) {
-            Log.e(TAG, "فشل تشغيل السيرفر: " + e.getMessage());
-        }
-    }
-
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        new Thread(this::startSocketServer).start();
-        return START_STICKY;
+        return START_STICKY; // إعادة تشغيل الخدمة تلقائياً إذا قتلها النظام
+    }
+
+    private Notification getServiceNotification(String text) {
+        Notification.Builder builder = (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) ?
+                new Notification.Builder(this, CHANNEL_ID) : new Notification.Builder(this);
+        return builder.setContentTitle("جسر CDMA السحابي")
+                .setContentText(text)
+                .setSmallIcon(android.R.drawable.ic_menu_call)
+                .setOngoing(true)
+                .build();
     }
 
     private void createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationChannel channel = new NotificationChannel(
-                    CHANNEL_ID, 
-                    "جسر المكالمات", 
-                    NotificationManager.IMPORTANCE_HIGH
-            );
+            NotificationChannel channel = new NotificationChannel(CHANNEL_ID, "جسر المكالمات", NotificationManager.IMPORTANCE_HIGH);
             channel.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
-            NotificationManager manager = getSystemService(NotificationManager.class);
-            if (manager != null) manager.createNotificationChannel(channel);
+            getSystemService(NotificationManager.class).createNotificationChannel(channel);
         }
+    }
+
+    @Override
+    public void onDestroy() {
+        if (bridgeRef != null && cloudListener != null) {
+            bridgeRef.removeEventListener(cloudListener);
+        }
+        super.onDestroy();
     }
 
     @Override public IBinder onBind(Intent intent) { return null; }
