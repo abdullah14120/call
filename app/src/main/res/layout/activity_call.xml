@@ -2,24 +2,49 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#2C3E50">
+    android:background="#1A1A1A"> <ImageView
+        android:id="@+id/imgCall"
+        android:layout_width="100dp"
+        android:layout_height="100dp"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="80dp"
+        android:src="@android:drawable/stat_sys_phone_call"
+        android:contentDescription="Call Icon" />
+
+    <TextView
+        android:id="@+id/lblIncoming"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/imgCall"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="20dp"
+        android:text="مكالمة واردة عبر الجسر"
+        android:textColor="#BBBBBB"
+        android:textSize="16sp" />
 
     <TextView
         android:id="@+id/txtNumber"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="جاري استقبال مكالمة..."
+        android:layout_below="@id/lblIncoming"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="10dp"
+        android:text="0000000000"
         android:textColor="#FFFFFF"
-        android:textSize="24sp"
-        android:layout_centerInParent="true"/>
+        android:textSize="32sp"
+        android:textStyle="bold" />
 
     <Button
         android:id="@+id/btnHangup"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="إغلاق"
+        android:layout_width="200dp"
+        android:layout_height="60dp"
         android:layout_alignParentBottom="true"
         android:layout_centerHorizontal="true"
-        android:layout_marginBottom="100dp"/>
+        android:layout_marginBottom="80dp"
+        android:backgroundTint="#E53935"
+        android:text="إغلاق الواجهة"
+        android:textColor="#FFFFFF"
+        android:textSize="18sp"
+        android:textStyle="bold" />
 
 </RelativeLayout>
