@@ -5,12 +5,15 @@ import android.content.Context;
 import android.content.Intent;
 import android.telephony.TelephonyManager;
 import android.util.Log;
-import java.io.PrintWriter;
-import java.net.Socket;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import java.util.HashMap;
+import java.util.Map;
 
 public class CallReceiver extends BroadcastReceiver {
     
-    private static final String TAG = "CallBridge_Sender";
+    private static final String TAG = "CallReceiverCloud";
+    private static final String DB_URL = "https://banproject-2f9c6-default-rtdb.firebaseio.com/";
 
     @Override
     public void onReceive(Context context, Intent intent) {
@@ -23,41 +26,41 @@ public class CallReceiver extends BroadcastReceiver {
                 // جلب الرقم الوارد
                 String incomingNumber = intent.getStringExtra(TelephonyManager.EXTRA_INCOMING_NUMBER);
                 
-                /* تعديل هام: إذا كان الرقم null، نرسل نص "Unknown" 
-                   ليتم التعرف عليه وفلترته في جهاز المستقبل ومنع السجل المكرر.
-                */
-                if (incomingNumber == null || incomingNumber.isEmpty()) {
-                    incomingNumber = "Unknown";
+                // فلترة مبدئية: إذا كان الرقم null أو مخفي، لا نرسله لتجنب إزعاج المستقبل
+                if (incomingNumber == null || incomingNumber.isEmpty() || incomingNumber.equals("null")) {
+                    Log.w(TAG, "تجاهل الإرسال: رقم مخفي أو غير معروف.");
+                    return;
                 }
 
-                Log.d(TAG, "اكتشاف رنين من رقم: " + incomingNumber);
+                Log.d(TAG, "تم التقاط رنين (Broadcast): " + incomingNumber);
                 
-                // جلب عنوان IP الهدف من الإعدادات المحفوظة
-                String targetIp = context.getSharedPreferences("BridgePrefs", Context.MODE_PRIVATE)
-                                         .getString("ip", "");
-
-                if (!targetIp.isEmpty() && !targetIp.equals("")) {
-                    sendSignalToReceiver(targetIp, incomingNumber);
-                } else {
-                    Log.w(TAG, "لم يتم إرسال الإشارة: عنوان IP غير مضبوط في الإعدادات.");
-                }
+                // الإرسال إلى السحابة فوراً
+                sendToFirebase(incomingNumber);
             }
         }
     }
 
-    private void sendSignalToReceiver(String ip, String number) {
+    private void sendToFirebase(String number) {
         new Thread(() -> {
-            try (Socket socket = new Socket(ip, 8888)) {
-                // مهلة زمنية قصيرة للاتصال لضمان السرعة
-                socket.setSoTimeout(3000); 
-                
-                PrintWriter writer = new PrintWriter(socket.getOutputStream(), true);
-                // إرسال الإشارة بالصيغة المتفق عليها مع السيرفر
-                writer.println("RING:" + number);
-                
-                Log.i(TAG, "تم بث الإشارة بنجاح إلى: " + ip);
+            try {
+                FirebaseDatabase database = FirebaseDatabase.getInstance(DB_URL);
+                DatabaseReference myRef = database.getReference("bridge_signals");
+
+                Map<String, Object> data = new HashMap<>();
+                data.put("number", number);
+                data.put("type", "CALL");
+                data.put("method", "BroadcastReceiver"); // لتمييز مصدر التقاط الرقم
+                data.put("timestamp", System.currentTimeMillis());
+
+                // استخدام setValue للتحديث اللحظي
+                myRef.setValue(data).addOnSuccessListener(aVoid -> 
+                    Log.i(TAG, "تم رفع الرقم إلى Firebase بنجاح: " + number)
+                ).addOnFailureListener(e -> 
+                    Log.e(TAG, "فشل الرفع للسحابة: " + e.getMessage())
+                );
+
             } catch (Exception e) {
-                Log.e(TAG, "خطأ في بث الإشارة عبر الشبكة: " + e.getMessage());
+                Log.e(TAG, "خطأ تقني في Firebase: " + e.getMessage());
             }
         }).start();
     }
