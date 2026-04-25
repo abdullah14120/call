@@ -1,17 +1,19 @@
 plugins {
     id 'com.android.application'
+    // 1. إضافة جلب خدمات جوجل (ضروري لـ Firebase)
+    id 'com.google.gms.google-services' 
 }
 
 android {
     namespace 'com.cdma.gsm.call'
-    compileSdk 34 // Android 14
+    compileSdk 34
 
     defaultConfig {
         applicationId "com.cdma.gsm.call"
-        minSdk 24 // لضمان دعم الأجهزة القديمة التي قد تعمل بنظام CDMA
+        minSdk 24 
         targetSdk 34
         versionCode 1
-        versionName "1.0"
+        versionName "2.0-Cloud" // تحديث النسخة للإصدار السحابي
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -30,15 +32,22 @@ android {
 }
 
 dependencies {
-    // المكتبات الأساسية لواجهة المستخدم ودعم النظام
+    // المكتبات الأساسية
     implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation 'com.google.android.material:material:1.11.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+    
+    // 2. مكتبة CardView (ضرورية لواجهة activity_main الجديدة)
+    implementation 'androidx.cardview:cardview:1.0.0'
 
-    // مكتبة لدعم الـ Notifications والـ Foreground Services بشكل أسهل
+    // 3. مكتبات Firebase (قلب النظام السحابي)
+    // استيراد منصة Firebase BoM لضمان توافق النسخ
+    implementation platform('com.google.firebase:firebase-bom:32.7.0')
+    implementation 'com.google.firebase:firebase-database' // قاعدة البيانات اللحظية
+    implementation 'com.google.firebase:firebase-analytics' // اختياري للتقارير
+
     implementation 'androidx.core:core:1.12.0'
 
-    // اختبارات (اختياري)
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
