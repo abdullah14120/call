@@ -1,17 +1,29 @@
-// Top-level build file
+// Top-level build file حيث يتم تعريف الإعدادات المشتركة لكل الوحدات (modules).
+
 buildscript {
     repositories {
+        // مستودعات جوجل و Maven الأساسية
         google()
         mavenCentral()
     }
     dependencies {
-        // متوافق مع Gradle 8.2.2+
+        // أداة بناء أندرويد (متوافقة مع Gradle 8.2.2+)
         classpath 'com.android.tools.build:gradle:8.2.2'
+
+        // الإضافة الضرورية لـ Firebase (Google Services Plugin)
+        // هذا السطر هو المحرك الذي يربط ملف الـ JSON بمكتبات Firebase
+        classpath 'com.google.gms:google-services:4.4.0'
     }
 }
 
-// مسح مجلد الـ Build عند طلب تنظيف المشروع
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+// مهمة تنظيف المشروع المسؤولة عن مسح الملفات المؤقتة
 tasks.register('clean', Delete) {
     delete rootProject.buildDir
 }
-
