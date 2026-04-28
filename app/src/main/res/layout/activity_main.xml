@@ -1,108 +1,41 @@
-<?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#F4F7F9">
+    android:orientation="vertical"
+    android:padding="20dp"
+    android:gravity="center">
 
-    <LinearLayout
+    <TextView
+        android:id="@+id/txtStatus"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="وضع الانتظار"
+        android:textSize="18sp"
+        android:layout_marginBottom="20dp"/>
+
+    <EditText
+        android:id="@+id/editIp"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="20dp"
-        android:gravity="center_horizontal">
+        android:hint="أدخل IP جهاز المستقبل (GSM)"
+        android:inputType="phone"
+        android:layout_marginBottom="20dp"/>
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="جسر CDMA السحابي v2"
-            android:textSize="22sp"
-            android:textStyle="bold"
-            android:textColor="#1976D2"
-            android:layout_marginTop="20dp"
-            android:layout_marginBottom="30dp"/>
+    <Button
+        android:id="@+id/btnCdma"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="تشغيل كـ مرسل (CDMA)"
+        android:backgroundTint="#4CAF50"/>
 
-        <androidx.cardview.widget.CardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            app:cardCornerRadius="15dp"
-            app:cardElevation="6dp"
-            android:layout_marginBottom="30dp">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="20dp"
-                android:gravity="center">
-
-                <TextView
-                    android:id="@+id/txtStatus"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="الحالة: خامل (بانتظار الاختيار)"
-                    android:textSize="16sp"
-                    android:textStyle="bold"
-                    android:textColor="#757575"/>
-            </LinearLayout>
-        </androidx.cardview.widget.CardView>
-
-        <Button
-            android:id="@+id/btnCdma"
-            android:layout_width="match_parent"
-            android:layout_height="60dp"
-            android:text="تفعيل وضع المرسل (CDMA)"
-            android:backgroundTint="#4CAF50"
-            android:textColor="#FFFFFF"
-            android:layout_marginBottom="15dp"
-            android:textSize="16sp"
-            android:elevation="4dp"/>
-
-        <Button
-            android:id="@+id/btnGsm"
-            android:layout_width="match_parent"
-            android:layout_height="60dp"
-            android:text="تفعيل وضع المستقبل (GSM)"
-            android:backgroundTint="#2196F3"
-            android:textColor="#FFFFFF"
-            android:layout_marginBottom="30dp"
-            android:textSize="16sp"
-            android:elevation="4dp"/>
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="إعدادات الاستقبال السحابي:"
-            android:textStyle="bold"
-            android:textColor="#555"
-            android:layout_marginBottom="10dp"
-            android:paddingStart="5dp"/>
-
-        <androidx.cardview.widget.CardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            app:cardCornerRadius="12dp"
-            app:cardElevation="2dp">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="10dp">
-
-                <Switch
-                    android:id="@+id/switchReceiveCalls"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="استقبال المكالمات الفائتة"
-                    android:padding="15dp"
-                    android:textSize="15sp"
-                    android:checked="true"/>
-
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:background="#EEE"/>
+    <Button
+        android:id="@+id/btnGsm"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="تشغيل كـ مستقبل (GSM)"
+        android:backgroundTint="#2196F3"
+        android:layout_marginTop="10dp"/>
+</LinearLayout>
 
                 <Switch
                     android:id="@+id/switchReceiveSms"
