@@ -1,17 +1,40 @@
+// 1. يجب أن يكون هذا السطر في أول الملف تماماً ليعرف Gradle أن هذا تطبيق أندرويد
+apply plugin: 'com.android.application'
+
 android {
+    // تم ضبطها لتتوافق مع استوديو Hedgehog و Iguana والإصدارات الأحدث
     namespace 'com.cdma.gsm.call'
     compileSdk 34
 
     defaultConfig {
         applicationId "com.cdma.gsm.call"
-        minSdk 21 // أندرويد 5.0
+        // دعم أندرويد 5.0 (Lollipop) فما فوق
+        minSdk 21 
         targetSdk 34
         versionCode 1
         versionName "1.0-Local"
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
     }
 }
 
 dependencies {
-    implementation 'androidx.appcompat:appcompat:1.3.1' // نسخة مستقرة للأجهزة القديمة
+    // مكتبات بسيطة وخفيفة لضمان العمل على الأجهزة القديمة بدون أخطاء
+    implementation 'androidx.appcompat:appcompat:1.3.1'
     implementation 'com.google.android.material:material:1.4.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.0'
+    
+    // لا نحتاج لمكتبات Firebase هنا لأننا نستخدم IP محلي
 }
