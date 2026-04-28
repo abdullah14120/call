@@ -1,65 +1,30 @@
-<?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="20dp"
-    android:background="#F5F5F5"
-    android:gravity="center_horizontal">
+    android:padding="30dp"
+    android:gravity="center">
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="جسر CDMA المحلي"
-        android:textSize="24sp"
-        android:textStyle="bold"
-        android:textColor="#333"
-        android:layout_marginTop="30dp"
-        android:layout_marginBottom="10dp"/>
-
-    <TextView
-        android:id="@+id/txtStatus"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="الحالة: بانتظار الإعداد"
-        android:textSize="16sp"
-        android:textColor="#757575"
-        android:layout_marginBottom="40dp"/>
+        android:text="إعدادات جهاز المرسل"
+        android:textSize="20sp"
+        android:layout_marginBottom="30dp"/>
 
     <EditText
         android:id="@+id/editIp"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="أدخل IP جهاز الـ GSM (مثال: 192.168.1.5)"
+        android:hint="IP المستقبل (GSM)"
         android:inputType="phone"
-        android:background="@android:drawable/editbox_background"
-        android:padding="12dp"
-        android:layout_marginBottom="25dp"/>
+        android:layout_marginBottom="20dp"/>
 
     <Button
-        android:id="@+id/btnCdma"
+        android:id="@+id/btnSave"
         android:layout_width="match_parent"
-        android:layout_height="60dp"
-        android:text="تشغيل كـ مرسل (جهاز CDMA)"
-        android:backgroundTint="#4CAF50"
-        android:textColor="#FFFFFF"
-        android:layout_marginBottom="15dp"/>
-
-    <Button
-        android:id="@+id/btnGsm"
-        android:layout_width="match_parent"
-        android:layout_height="60dp"
-        android:text="تشغيل كـ مستقبل (جهاز GSM)"
-        android:backgroundTint="#2196F3"
-        android:textColor="#FFFFFF" />
-
-    <TextView
-        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="30dp"
-        android:text="ملاحظة: يجب أن يكون الجهازان على نفس الشبكة"
-        android:textSize="12sp"
-        android:textColor="#999"
-        android:textAlignment="center"/>
-
+        android:text="حفظ وتفعيل الإرسال"
+        android:backgroundTint="#4CAF50"
+        android:textColor="#FFF"/>
 </LinearLayout>
