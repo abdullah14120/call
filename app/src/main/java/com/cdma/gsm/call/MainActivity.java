@@ -2,7 +2,6 @@ package com.cdma.gsm.call;
 
 import android.Manifest;
 import android.app.Activity;
-import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -10,12 +9,9 @@ import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Handler;
-import android.provider.CallLog;
 import android.provider.Settings;
-import android.text.TextUtils;
 import android.widget.Button;
-import android.widget.Switch;
+import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 import java.util.ArrayList;
@@ -25,6 +21,7 @@ public class MainActivity extends Activity {
 
     private SharedPreferences prefs;
     private TextView txtStatus;
+    private EditText editIp; // إضافة حقل الـ IP
     private static final int PERMISSION_REQUEST_CODE = 100;
     private static final int OVERLAY_REQUEST_CODE = 101;
 
@@ -33,122 +30,63 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // 1. ربط عناصر الواجهة (تأكد من مطابقة الـ IDs في ملف XML)
+        // 1. ربط العناصر (تأكد من وجود editIp في الـ XML)
         txtStatus = findViewById(R.id.txtStatus);
+        editIp = findViewById(R.id.editIp); 
         Button btnSender = findViewById(R.id.btnCdma);
         Button btnReceiver = findViewById(R.id.btnGsm);
-        Switch swCalls = findViewById(R.id.switchReceiveCalls);
-        Switch swSms = findViewById(R.id.switchReceiveSms);
 
-        prefs = getSharedPreferences("ReceiverPrefs", MODE_PRIVATE);
+        prefs = getSharedPreferences("BridgePrefs", MODE_PRIVATE);
         
-        // تحميل إعدادات الاستقبال المحفوظة
-        swCalls.setChecked(prefs.getBoolean("allow_calls", true));
-        swSms.setChecked(prefs.getBoolean("allow_sms", true));
+        // استرجاع الـ IP المحفوظ سابقاً
+        editIp.setText(prefs.getString("ip", ""));
 
-        // 2. طلب المصفوفة الشاملة للأذونات عند فتح التطبيق
-        checkAndRequestAllPermissions();
+        // 2. طلب الأذونات الأساسية (أندرويد 5 لا يطلبها وقت التشغيل، لكن أندرويد 6+ يطلبها)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            checkAndRequestPermissions();
+        }
 
-        // 3. تفعيل وضع المرسل (جهاز CDMA) - تشغيل محركات النظام الخماسي
+        // 3. وضع المرسل (CDMA) - يرسل للـ IP المكتوب
         btnSender.setOnClickListener(v -> {
-            activateSenderMode();
+            String ip = editIp.getText().toString().trim();
+            if (ip.isEmpty()) {
+                Toast.makeText(this, "يرجى إدخال IP جهاز المستقبل أولاً", Toast.LENGTH_SHORT).show();
+            } else {
+                prefs.edit().putString("ip", ip).apply();
+                txtStatus.setText("الحالة: وضع المرسل نشط (" + ip + ")");
+                txtStatus.setTextColor(0xFF4CAF50);
+                Toast.makeText(this, "تم حفظ الـ IP وتفعيل المراقبة", Toast.LENGTH_LONG).show();
+            }
         });
 
-        // 4. تفعيل وضع المستقبل (جهاز GSM) - بدء الاستقبال السحابي
+        // 4. وضع المستقبل (GSM) - يفتح السيرفر المحلي
         btnReceiver.setOnClickListener(v -> {
             if (checkOverlayPermission()) {
                 startBridgeService();
             }
         });
-
-        // حفظ تفضيلات المستخدم فور تغيير الـ Switches
-        swCalls.setOnCheckedChangeListener((b, isChecked) -> prefs.edit().putBoolean("allow_calls", isChecked).apply());
-        swSms.setOnCheckedChangeListener((b, isChecked) -> prefs.edit().putBoolean("allow_sms", isChecked).apply());
     }
 
-    private void checkAndRequestAllPermissions() {
-        List<String> permissionsNeeded = new ArrayList<>();
+    private void checkAndRequestPermissions() {
+        List<String> perms = new ArrayList<>();
+        perms.add(Manifest.permission.READ_PHONE_STATE);
+        perms.add(Manifest.permission.INTERNET);
         
-        // أذونات المكالمات والسجل (للمراقبين 1 و 2 و 5)
-        permissionsNeeded.add(Manifest.permission.READ_PHONE_STATE);
-        permissionsNeeded.add(Manifest.permission.READ_CALL_LOG);
-        permissionsNeeded.add(Manifest.permission.WRITE_CALL_LOG);
-        
-        // أذونات الرسائل (للمراقب 3)
-        permissionsNeeded.add(Manifest.permission.RECEIVE_SMS);
-        permissionsNeeded.add(Manifest.permission.READ_SMS);
-
-        // إذن الإشعارات لأجهزة أندرويد 13+
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            permissionsNeeded.add(Manifest.permission.POST_NOTIFICATIONS);
-        }
-
-        List<String> listPermissionsAssign = new ArrayList<>();
-        for (String per : permissionsNeeded) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                if (checkSelfPermission(per) != PackageManager.PERMISSION_GRANTED) {
-                    listPermissionsAssign.add(per);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            List<String> listToRequest = new ArrayList<>();
+            for (String p : perms) {
+                if (checkSelfPermission(p) != PackageManager.PERMISSION_GRANTED) {
+                    listToRequest.add(p);
                 }
             }
-        }
-
-        if (!listPermissionsAssign.isEmpty()) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                requestPermissions(listPermissionsAssign.toArray(new String[0]), PERMISSION_REQUEST_CODE);
+            if (!listToRequest.isEmpty()) {
+                requestPermissions(listToRequest.toArray(new String[0]), PERMISSION_REQUEST_CODE);
             }
         }
-
-        // فحص "مراقب الإشعارات" (المراقب 4) وتوجيه المستخدم لتفعيله
-        if (!isNotificationServiceEnabled()) {
-            startActivity(new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS));
-            Toast.makeText(this, "يرجى تفعيل 'جسر CDMA' في قائمة الوصول للإشعارات", Toast.LENGTH_LONG).show();
-        }
-
-        // فحص "خدمة الوصول" (المراقب 5) وتوجيه المستخدم لتفعيلها
-        if (!isAccessibilityServiceEnabled(this, MyAccessibilityService.class)) {
-            startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS));
-            Toast.makeText(this, "يرجى تفعيل 'جسر CDMA' في خدمات إمكانية الوصول", Toast.LENGTH_LONG).show();
-        }
-    }
-
-    private void activateSenderMode() {
-        // تفعيل CallLog Observer لمراقبة سجل النظام فوراً
-        CallLogObserver observer = new CallLogObserver(new Handler(), this);
-        getContentResolver().registerContentObserver(CallLog.Calls.CONTENT_URI, true, observer);
-
-        txtStatus.setText("الحالة: مرسل سحابي نشط (النظام الخماسي)");
-        txtStatus.setTextColor(0xFF4CAF50); // لون أخضر للنجاح
-        Toast.makeText(this, "النظام الخماسي جاهز لاقتناص المكالمات وإرسالها", Toast.LENGTH_LONG).show();
-    }
-
-    private boolean isNotificationServiceEnabled() {
-        String pkgName = getPackageName();
-        final String flat = Settings.Secure.getString(getContentResolver(), "enabled_notification_listeners");
-        if (flat != null && !flat.isEmpty()) {
-            final String[] names = flat.split(":");
-            for (String name : names) {
-                final ComponentName cn = ComponentName.unflattenFromString(name);
-                if (cn != null && pkgName.equals(cn.getPackageName())) return true;
-            }
-        }
-        return false;
-    }
-
-    private boolean isAccessibilityServiceEnabled(Context context, Class<?> service) {
-        ComponentName expected = new ComponentName(context, service);
-        String enabledServicesSetting = Settings.Secure.getString(context.getContentResolver(), Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES);
-        if (enabledServicesSetting == null) return false;
-        TextUtils.SimpleStringSplitter colonSplitter = new TextUtils.SimpleStringSplitter(':');
-        colonSplitter.setString(enabledServicesSetting);
-        while (colonSplitter.hasNext()) {
-            String componentNameString = colonSplitter.next();
-            ComponentName enabledService = ComponentName.unflattenFromString(componentNameString);
-            if (enabledService != null && enabledService.equals(expected)) return true;
-        }
-        return false;
     }
 
     private boolean checkOverlayPermission() {
+        // إذن الظهور فوق التطبيقات بدأ من أندرويد 6.0 (API 23)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             if (!Settings.canDrawOverlays(this)) {
                 Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + getPackageName()));
@@ -161,13 +99,14 @@ public class MainActivity extends Activity {
 
     private void startBridgeService() {
         Intent serviceIntent = new Intent(this, BridgeService.class);
+        // أندرويد 8+ يتطلب startForegroundService
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             startForegroundService(serviceIntent);
         } else {
             startService(serviceIntent);
         }
-        txtStatus.setText("الحالة: مستقبل سحابي متصل");
-        txtStatus.setTextColor(0xFF2196F3); // لون أزرق للاستقبال
+        txtStatus.setText("الحالة: وضع المستقبل نشط (بانتظار IP المرسل)");
+        txtStatus.setTextColor(0xFF2196F3);
     }
 
     @Override
